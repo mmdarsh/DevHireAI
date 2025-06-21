@@ -6,30 +6,28 @@ import {
   CardBody,
   Typography,
   Button,
-  Input,
+  Input
 } from "@material-tailwind/react";
 
-const Login = () => {
+const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  // Static credentials
-  const VALID_CREDENTIALS = {
-    username: 'admin',
-    password: '123'
-  };
 
   const clearForm = () => {
     setFormData({
       username: '',
+      email: '',
       password: ''
     });
     setError('');
+    setSuccess('');
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,29 +38,86 @@ const Login = () => {
     }));
     // Clear error when user starts typing
     if (error) setError('');
+    if (success) setSuccess('');
+  };
+
+  const validateForm = () => {
+    if (!formData.username.trim()) {
+      setError('Username is required');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return false;
+    }
+    if (!formData.email.includes('@')) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    if (!formData.password.trim()) {
+      setError('Password is required');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    if (formData.username === VALID_CREDENTIALS.username && 
-        formData.password === VALID_CREDENTIALS.password) {
-      // Store login state (you can use localStorage or context)
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('user', JSON.stringify({ username: formData.username }));
+    try {
+      // Here you would typically make an API call to register the user
+      // For demo purposes, we'll simulate a successful registration
       
-      // Clear form data before navigation
+      // Store registration data (in real app, this would be handled by backend)
+      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const newUser = {
+        id: Date.now(),
+        username: formData.username,
+        email: formData.email,
+        password: formData.password, // In real app, this should be hashed
+        createdAt: new Date().toISOString()
+      };
+      
+      // Check if user already exists
+      const userExists = existingUsers.some((user: any) => 
+        user.username === formData.username || user.email === formData.email
+      );
+      
+      if (userExists) {
+        setError('User with this username or email already exists');
+        setIsLoading(false);
+        return;
+      }
+      
+      existingUsers.push(newUser);
+      localStorage.setItem('users', JSON.stringify(existingUsers));
+      
+      setSuccess('Registration successful! Redirecting to login...');
+      
+      // Clear form data
       clearForm();
       
-      // Navigate to dashboard
-      navigate('/dashboard');
-    } else {
-      setError('Invalid username or password. Please try again.');
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
+    } catch (err) {
+      setError('Registration failed. Please try again.');
     }
     
     setIsLoading(false);
@@ -81,7 +136,6 @@ const Login = () => {
           <Typography variant="h4" color="gray" className="font-bold mb-2" {...({} as any)}>
             DevHire AI
           </Typography>
-          
         </div>
 
         <Card className="shadow-2xl border-0" {...({} as any)}>
@@ -92,7 +146,7 @@ const Login = () => {
             {...({} as any)}
           >
             <Typography variant="h5" color="white" className="font-semibold" {...({} as any)}>
-              Access your recruitment dashboard
+              Create New Account
             </Typography>   
           </CardHeader>
           
@@ -107,11 +161,22 @@ const Login = () => {
                 </div>
               </div>
             )}
+
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-green-700 text-sm">{success}</span>
+                </div>
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <Typography variant="small" color="gray" className="mb-2 font-medium" {...({} as any)}>
-                  Employee ID / Username
+                  Username
                 </Typography>
                 <Input
                   type="text"
@@ -127,6 +192,30 @@ const Login = () => {
                   icon={
                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  }
+                  {...({} as any)}
+                />
+              </div>
+              
+              <div>
+                <Typography variant="small" color="gray" className="mb-2 font-medium" {...({} as any)}>
+                  Email Address
+                </Typography>
+                <Input
+                  type="email"
+                  size="lg"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  className="!border-gray-300 focus:!border-blue-500"
+                  labelProps={{
+                    className: "text-gray-600"
+                  }}
+                  icon={
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   }
                   {...({} as any)}
@@ -170,28 +259,28 @@ const Login = () => {
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Authenticating...</span>
+                    <span>Creating Account...</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    <span>Sign In to Dashboard</span>
+                    <span>Create Account</span>
                   </div>
                 )}
               </Button>
             </form>
 
-            {/* Register Link */}
+            {/* Login Link */}
             <div className="mt-6 text-center">
               <Typography variant="small" color="gray" className="font-medium" {...({} as any)}>
-                Don't have an account?{' '}
+                Already have an account?{' '}
                 <button
-                  onClick={() => navigate('/register')}
+                  onClick={() => navigate('/login')}
                   className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                 >
-                  Create Account
+                  Sign In
                 </button>
               </Typography>
             </div>
@@ -206,4 +295,4 @@ const Login = () => {
   );
 };
 
-export default Login; 
+export default Register; 
