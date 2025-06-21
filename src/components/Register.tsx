@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../config/axios';
-import { API_ENDPOINTS } from '../config/endpoints';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   CardHeader,
@@ -10,25 +8,28 @@ import {
   Button,
   Input
 } from "@material-tailwind/react";
-
-const Login = () => {
+ 
+const Register = () => {
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
+ 
   const clearForm = () => {
     setFormData({
+      username: '',
       email: '',
       password: ''
     });
     setError('');
+    setSuccess('');
   };
-
+ 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -37,64 +38,91 @@ const Login = () => {
     }));
     // Clear error when user starts typing
     if (error) setError('');
+    if (success) setSuccess('');
   };
-
+ 
+  const validateForm = () => {
+    if (!formData.username.trim()) {
+      setError('Username is required');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return false;
+    }
+    if (!formData.email.includes('@')) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+    if (!formData.password.trim()) {
+      setError('Password is required');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+    return true;
+  };
+ 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+   
+    if (!validateForm()) {
+      return;
+    }
+ 
     setIsLoading(true);
     setError('');
-
+ 
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+ 
     try {
-      const baseUrl = import.meta.env.VITE_APP_NET_URL;
-      const loginEndpoint = API_ENDPOINTS.LOGIN;
-      const url = `${baseUrl}${loginEndpoint}`;
-      debugger
-
-      const response = await api.post(url, {
+      // Here you would typically make an API call to register the user
+      // For demo purposes, we'll simulate a successful registration
+     
+      // Store registration data (in real app, this would be handled by backend)
+      const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+      const newUser = {
+        id: Date.now(),
+        username: formData.username,
         email: formData.email,
-        password: formData.password
-      });
-
-      console.log('Login successful:', response.data);
-      debugger
-      
-      // Extract token from response.data.token
-      const token = response.data.token;
-      if (!token) {
-        throw new Error('No token received from server');
+        password: formData.password, // In real app, this should be hashed
+        createdAt: new Date().toISOString()
+      };
+     
+      // Check if user already exists
+      const userExists = existingUsers.some((user: any) =>
+        user.username === formData.username || user.email === formData.email
+      );
+     
+      if (userExists) {
+        setError('User with this username or email already exists');
+        setIsLoading(false);
+        return;
       }
-
-      // Store login state and user data
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('user', JSON.stringify(response.data));
-      localStorage.setItem('token', token);
-      
-      // Clear form data before navigation
+     
+      existingUsers.push(newUser);
+      localStorage.setItem('users', JSON.stringify(existingUsers));
+     
+      setSuccess('Registration successful! Redirecting to login...');
+     
+      // Clear form data
       clearForm();
-      
-      // Navigate to dashboard or the page they were trying to access
-      const from = (location.state as any)?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
-      
-    } catch (error: any) {
-      console.error('Login error:', error);
-      debugger
-      if (error.response) {
-        // Server responded with error status
-        const errorMessage = error.response.data?.message || error.response.data?.error || 'Login failed. Please check your credentials.';
-        setError(errorMessage);
-      } else if (error.request) {
-        // Network error
-        setError('Network error. Please check your connection and try again.');
-      } else {
-        // Other error
-        setError(error.message || 'An unexpected error occurred. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
+     
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+     
+    } catch (err) {
+      setError('Registration failed. Please try again.');
     }
+   
+    setIsLoading(false);
   };
-
+ 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -108,9 +136,8 @@ const Login = () => {
           <Typography variant="h4" color="gray" className="font-bold mb-2" {...({} as any)}>
             DevHire AI
           </Typography>
-          
         </div>
-
+ 
         <Card className="shadow-2xl border-0" {...({} as any)}>
           <CardHeader
             variant="gradient"
@@ -119,23 +146,58 @@ const Login = () => {
             {...({} as any)}
           >
             <Typography variant="h5" color="white" className="font-semibold" {...({} as any)}>
-            Access your recruitment dashboard
-            </Typography>   
+              Create New Account
+            </Typography>  
           </CardHeader>
-          
+         
           <CardBody className="p-6" {...({} as any)}>
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-2 text-red-700">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm font-medium">{error}</span>
+                  <span className="text-red-700 text-sm">{error}</span>
                 </div>
               </div>
             )}
-            
+ 
+            {success && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-green-700 text-sm">{success}</span>
+                </div>
+              </div>
+            )}
+           
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Typography variant="small" color="gray" className="mb-2 font-medium" {...({} as any)}>
+                  Username
+                </Typography>
+                <Input
+                  type="text"
+                  size="lg"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                  className="!border-gray-300 focus:!border-blue-500"
+                  labelProps={{
+                    className: "text-gray-600"
+                  }}
+                  icon={
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  }
+                  {...({} as any)}
+                />
+              </div>
+             
               <div>
                 <Typography variant="small" color="gray" className="mb-2 font-medium" {...({} as any)}>
                   Email Address
@@ -153,13 +215,13 @@ const Login = () => {
                   }}
                   icon={
                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   }
                   {...({} as any)}
                 />
               </div>
-              
+             
               <div>
                 <Typography variant="small" color="gray" className="mb-2 font-medium" {...({} as any)}>
                   Password
@@ -183,7 +245,7 @@ const Login = () => {
                   {...({} as any)}
                 />
               </div>
-              
+             
               <Button
                 type="submit"
                 variant="gradient"
@@ -196,26 +258,35 @@ const Login = () => {
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">
-                    <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Authenticating...</span>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Creating Account...</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    <span>Sign In to Dashboard</span>
+                    <span>Create Account</span>
                   </div>
                 )}
               </Button>
             </form>
+ 
+            {/* Login Link */}
+            <div className="mt-6 text-center">
+              <Typography variant="small" color="gray" className="font-medium" {...({} as any)}>
+                Already have an account?{' '}
+                <button
+                  onClick={() => navigate('/login')}
+                  className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                >
+                  Sign In
+                </button>
+              </Typography>
+            </div>
           </CardBody>
-          
         </Card>
-        
+       
         {/* Footer */}
         <div className="text-center mt-8">
         </div>
@@ -223,5 +294,5 @@ const Login = () => {
     </div>
   );
 };
-
-export default Login; 
+ 
+export default Register;
